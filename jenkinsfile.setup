@@ -6,7 +6,7 @@ pipeline {
             steps {echo "Tools installing pipeline"}
         }
 
-        stage ("List Update")
+        stage ("List Update-1")
         {
             steps {
                 sh '''
