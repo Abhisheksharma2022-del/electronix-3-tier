@@ -1,5 +1,5 @@
 pipeline {
-    agent{ lable 'electronix' }
+    agent{ label 'electronix' }
 
     stages{
         stage("Tools configure"){
