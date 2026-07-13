@@ -4,15 +4,21 @@ pipeline {
     }
 
     stages {
-        stage('I am from Electronix') {
+        stage('Provision Node.js Runtime') {
             steps {
-                echo 'Hello from Electronix'
-            }
-        }
+                sh '''
+                    if ! command -v node &> /dev/null; then
+                        sudo apt-get update -y
+                        sudo apt-get install -y curl
+                        curl -fsSL https://deb.nodesource.com/setup_20.x -o nodesource_setup.sh
+                        sudo bash nodesource_setup.sh
+                        sudo apt-get install -y nodejs
+                        rm -f nodesource_setup.sh
+                    fi
 
-        stage('Electronix Setup') {
-            steps {
-                echo 'Electronix Setup is working fine ✅'
+                    node -v
+                    echo "Node.js is installed successfully ✅"
+                '''
             }
         }
     }
