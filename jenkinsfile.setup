@@ -5,5 +5,14 @@ pipeline {
         stage("Tools configure"){
             steps {echo "Tools installing pipeline"}
         }
+
+        stage ("List Update")
+        {
+            steps {
+                sh '''
+                sudo apt-get update
+                '''
+            }
+        }
     }
 }
