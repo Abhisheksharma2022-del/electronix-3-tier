@@ -2,7 +2,7 @@ pipeline {
     agent { label 'electronix' }
 
     environment {
-        S3_BUCKET = 'electronix-production-2026'
+        S3_BUCKET = 'electronix-production-1997'
         CLOUDFRONT_ID = 'E20BENLJOAO8ZT'
         AWS_REGION = 'us-east-2'
     }
