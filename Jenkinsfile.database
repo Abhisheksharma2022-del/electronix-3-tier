@@ -11,7 +11,7 @@ pipeline {
         }
         stage('Smoke Test') {
             steps {
-                sh 'python3 scripts/smoketest.py'
+                sh 'python3 scripts/smoke_test.py'
             }
         }
     }
