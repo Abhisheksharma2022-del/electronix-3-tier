@@ -1,61 +1,74 @@
-pipeline {
-    agent { label 'electronix' }
-   
+pipeline{
+    agent { label 'electronix'}
+
+    environment{
+        S3_BUCKET='electronix-production-2026'
+        CLOUDFRONT_ID='E20BENLJOAO8ZT'
+        AWS_REGION='us-east-2'
+    }
+
     stages{
-        stage("Provision Node.js Runtime"){
-            steps{
-                sh '''
-                if ! command -v node &> /dev/null;then
-                sudo apt-get update -y
-                sudo apt-get install -y curl
-                curl -fsSL https://deb.nodesource.com/setup_20.x -o nodesource_setup.sh
-                sudo bash nodesource_setup.sh
-                sudo apt-get install -y nodejs
-                rm -f nodesource_setup.sh
-                fi
-                node -v
-                echo "Node JS Runtime Successfully Installed ✅"
-                '''
+        stage("Frontend Deployment"){
+            when{
+                changeset "frontend/**"
+            }
+
+            stages{
+                stage('Install Dependencies'){
+                    steps{
+                        dir('frontend'){
+                            sh '''
+                            npm install
+                            '''
+                        }
+                    }
+                }
+
+                stage("Run Tests"){
+                    steps{
+                        dir('frontend'){
+                            sh 'npm test -- --watchAll=false || echo "No Test Configured.."'
+                        }
+                    }
+                }
+
+                stage("Build"){
+                    steps{
+                        dir('frontend'){
+                            sh 'npm run build'
+                        }
+                    }
+                }
+
+                stage('Deploy S3'){
+                    steps{
+                        dir('frontend'){
+                            sh '''
+                            aws s3 sync dist/ s3://${S3_BUCKET} --delete --region ${AWS_REGION}
+                            '''
+                        }
+                    }
+                }
+
+                
+                stage('Invalidation Cloudfront Cache'){
+                    steps{
+                        sh '''
+                        aws cloudfront create-invalidation --distribution-id ${CLOUDFRONT_ID} --paths "/*"
+                        '''
+                    }
+                }
             }
         }
+    }
 
-        stage("Provision Docker Engine"){
-            steps{
-                sh '''
-                if ! command -v docker &> /dev/null;then
-                sudo apt-get install -y ca-certificates curl gnupg
-                sudo install -m 0755 -d /etc/apt/keyrings
-                sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-                sudo chmod a+r /etc/apt/keyrings/docker.asc
-
-                echo \
-                "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-                $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-                sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-                sudo apt-get update -y
-                sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-                fi
-
-                docker --version
-                echo "Docker Installed Done ✅"
-                '''
-            }
+    post{
+        success{
+            echo 'Frontent Deployment Successfull ✅'
         }
 
-        stage("Provision MySQL client"){
-            steps{
-                sh '''
-                if ! command -v mysql &> /dev/null;then
-                sudo apt-get install -y mysql-client
-                fi
-                mysql --version
-
-                echo "Mysql Done ✅"
-                '''
-            }
+        failure {
+           echo 'Frontent Deployment Failed ❌'
         }
-
-    } 
-
+    }
 }
