@@ -4,26 +4,85 @@ pipeline {
     }
 
     environment {
-        ECR_REPO = '889088857850.dkr.ecr.ap-south-2.amazonaws.com/electronix-ecr'
-        AWS_REGION = 'ap-south-2'
+        ECR_REPO = "127677820228.dkr.ecr.us-east-2.amazonaws.com/electronix-ecr"
+        AWS_REGION = "us-east-2"
+        PRODUCTION_IP = "3.15.210.164"
     }
 
     stages {
+
+        stage('Backend Pipeline') {
+            steps {
+                echo "🚀 Backend Pipeline Started..."
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                dir('backend') {
+                    sh """
+                    sudo docker build -t electronix-backend:${BUILD_NUMBER} .
+                    """
+                }
+            }
+            post {
+                success {
+                    echo "✅ Docker Image Build Successful"
+                }
+                failure {
+                    echo "❌ Docker Image Build Failed"
+                }
+            }
+        }
+
         stage('Test ECR Login') {
             steps {
-                sh '''
-                aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REPO}
-                '''
+                sh """
+                aws ecr get-login-password --region ${AWS_REGION} | sudo docker login --username AWS --password-stdin 127677820228.dkr.ecr.us-east-2.amazonaws.com
+                """
+            }
+            post {
+                success {
+                    echo "✅ ECR Login Successful"
+                }
+                failure {
+                    echo "❌ ECR Login Failed"
+                }
+            }
+        }
+
+        stage('Tag & Push to ECR') {
+            steps {
+                sh """
+                sudo docker tag electronix-backend:${BUILD_NUMBER} ${ECR_REPO}:${BUILD_NUMBER}
+                sudo docker tag electronix-backend:${BUILD_NUMBER} ${ECR_REPO}:latest
+
+                sudo docker push ${ECR_REPO}:${BUILD_NUMBER}
+                sudo docker push ${ECR_REPO}:latest
+                """
+            }
+            post {
+                success {
+                    echo "✅ Docker Image Pushed Successfully"
+                }
+                failure {
+                    echo "❌ Docker Image Push Failed"
+                }
             }
         }
     }
 
     post {
         success {
-            echo "✅ ECR Login Successful"
+            echo "🎉 Backend Pipeline Executed Successfully"
         }
+
         failure {
-            echo "❌ ECR Login Failed"
+            echo "🚨 Backend Pipeline Failed"
+        }
+
+        always {
+            echo "📌 Pipeline Execution Completed"
         }
     }
 }
