@@ -60,7 +60,7 @@ pipeline {
             steps {
                 sh '''
                     sleep 10
-                    curl -f https://${PRODUCTION_IP}:5000/api/health || exit 1
+                    curl -f http://${PRODUCTION_IP}:5000/api/health || exit 1
                 '''
             }
         }
