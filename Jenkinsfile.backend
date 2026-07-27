@@ -4,9 +4,9 @@ pipeline {
     }
 
     environment {
-        ECR_REPO = "127677820228.dkr.ecr.us-east-2.amazonaws.com/electronix-ecr"
+        ECR_REPO = "489741402840.dkr.ecr.us-east-2.amazonaws.com/electronix-ecr"
         AWS_REGION = "us-east-2"
-        PRODUCTION_IP = "3.15.210.164"
+        PRODUCTION_IP = "3.129.107.17"
     }
 
     stages {
