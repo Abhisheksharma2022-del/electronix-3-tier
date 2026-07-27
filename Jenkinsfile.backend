@@ -4,7 +4,7 @@ pipeline {
     }
 
     environment {
-        ECR_REPO = '489741402840.dkr.ecr.us-east-2.amazonaws.com/electronix-ecrr'
+        ECR_REPO = '489741402840.dkr.ecr.us-east-2.amazonaws.com/electronix-ecr'
         AWS_REGION = "us-east-2"
         PRODUCTION_IP = '3.129.107.17'
     }
@@ -60,7 +60,7 @@ pipeline {
             steps {
                 sh '''
                     sleep 10
-                    curl -f http://${PRODUCTION_IP}:5000/api/health || exit 1
+                    curl -f https://${PRODUCTION_IP}:5000/api/health || exit 1
                 '''
             }
         }
