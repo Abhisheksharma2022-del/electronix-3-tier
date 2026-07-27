@@ -1,88 +1,66 @@
-pipeline {
-    agent {
-        label 'electronix'
-    }
+pipeline{
+    agent {label 'electronix'}
 
     environment {
-        ECR_REPO = "489741402840.dkr.ecr.us-east-2.amazonaws.com/electronix-ecr"
+        ECR_REPO='489741402840.dkr.ecr.us-east-2.amazonaws.com/electronix-ecr'
         AWS_REGION = "us-east-2"
-        PRODUCTION_IP = "3.129.107.17"
+        PRODUCTION_IP='3.129.107.17'
     }
 
-    stages {
+    stages{
 
-        stage('Backend Pipeline') {
-            steps {
-                echo "🚀 Backend Pipeline Started..."
+            stage('Build Docker Image'){
+                steps{
+                    dir("backend"){
+                        sh 'sudo docker build -t electronix-backend:${BUILD_NUMBER} .'
+                    }
+                }
             }
-        }
 
-        stage('Build Docker Image') {
-            steps {
-                dir('backend') {
-                    sh """
-                    sudo docker build -t electronix-backend:${BUILD_NUMBER} .
-                    """
+            stage("Test ECR Login"){
+                steps {
+                    sh '''
+                    aws ecr get-login-password --region ${AWS_REGION} | sudo docker login --username AWS --password-stdin ${ECR_REPO}
+                    '''
                 }
             }
-            post {
-                success {
-                    echo "✅ Docker Image Build Successful"
-                }
-                failure {
-                    echo "❌ Docker Image Build Failed"
-                }
-            }
-        }
 
-        stage('Test ECR Login') {
-            steps {
-                sh """
-                aws ecr get-login-password --region ${AWS_REGION} | sudo docker login --username AWS --password-stdin 127677820228.dkr.ecr.us-east-2.amazonaws.com
-                """
-            }
-            post {
-                success {
-                    echo "✅ ECR Login Successful"
-                }
-                failure {
-                    echo "❌ ECR Login Failed"
-                }
-            }
-        }
+            stage ("Tag & Push to ECR"){
+                steps{
+                    sh '''
+                    sudo docker tag electronix-backend:${BUILD_NUMBER} ${ECR_REPO}:${BUILD_NUMBER}
+                    sudo docker tag electronix-backend:${BUILD_NUMBER} ${ECR_REPO}:latest
+                    sudo docker push ${ECR_REPO}:${BUILD_NUMBER}
+                    sudo docker push ${ECR_REPO}:latest
 
-        stage('Tag & Push to ECR') {
-            steps {
-                sh """
-                sudo docker tag electronix-backend:${BUILD_NUMBER} ${ECR_REPO}:${BUILD_NUMBER}
-                sudo docker tag electronix-backend:${BUILD_NUMBER} ${ECR_REPO}:latest
+                    echo "Pushed Success ✅"
+                    '''
+                }
+            }
 
-                sudo docker push ${ECR_REPO}:${BUILD_NUMBER}
-                sudo docker push ${ECR_REPO}:latest
-                """
-            }
-            post {
-                success {
-                    echo "✅ Docker Image Pushed Successfully"
+              stage ("Deploy To Production"){
+                steps{
+                    sshagent(['prod-server-ssh-key']){
+                    sh '''
+                    ssh -o StrictHostKeyChecking=no ubuntu@${PRODUCTION_IP} "
+                    
+                    "
+                    '''
+                    }
+                    
                 }
-                failure {
-                    echo "❌ Docker Image Push Failed"
-                }
             }
-        }
+}
+
+
+  post {
+    success{
+        echo "ECR login success ✅"
     }
 
-    post {
-        success {
-            echo "🎉 Backend Pipeline Executed Successfully"
-        }
-
-        failure {
-            echo "🚨 Backend Pipeline Failed"
-        }
-
-        always {
-            echo "📌 Pipeline Execution Completed"
-        }
+    failure {
+        echo "ECR login Failed ❌"
     }
+  }
+
 }
